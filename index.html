@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jankenpo ✊✋✌️</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #0f0f1a;
+      --surface: #1a1a2e;
+      --card: #16213e;
+      --accent: #e94560;
+      --accent2: #0f3460;
+      --text: #eaeaea;
+      --muted: #888;
+      --win: #00e676;
+      --lose: #ff1744;
+      --tie: #ffab40;
+      --border: rgba(255,255,255,0.07);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 24px 16px 40px;
+      overflow-x: hidden;
+    }
+
+    /* ---- Partículas de fundo ---- */
+    #particles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.15;
+      animation: float linear infinite;
+    }
+    @keyframes float {
+      0%   { transform: translateY(100vh) scale(0); opacity: 0; }
+      10%  { opacity: 0.15; }
+      90%  { opacity: 0.15; }
+      100% { transform: translateY(-120px) scale(1); opacity: 0; }
+    }
+
+    /* ---- Layout principal ---- */
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 700px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* ---- Header ---- */
+    header {
+      text-align: center;
+    }
+    header h1 {
+      font-size: clamp(2rem, 6vw, 3.2rem);
+      font-weight: 800;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #e94560, #a855f7, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+
+    /* ---- Placar ---- */
+    .scoreboard {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 12px;
+      align-items: center;
+    }
+    .score-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      text-align: center;
+      transition: transform 0.3s;
+    }
+    .score-card.bump {
+      animation: bump 0.4s ease;
+    }
+    @keyframes bump {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+    .score-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .score-value {
+      font-size: 2.8rem;
+      font-weight: 900;
+      line-height: 1;
+    }
+    #score-player .score-value { color: #3b82f6; }
+    #score-computer .score-value { color: var(--accent); }
+    .score-vs {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-align: center;
+    }
+    .streak-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-top: 4px;
+      font-weight: 700;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .streak-badge.visible { opacity: 1; }
+
+    /* ---- Arena ---- */
+    .arena {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .arena-display {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      width: 100%;
+    }
+
+    .fighter {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+    .fighter-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+    }
+    .fighter-emoji {
+      font-size: clamp(3.5rem, 10vw, 5rem);
+      line-height: 1;
+      filter: drop-shadow(0 0 16px rgba(255,255,255,0.15));
+      transition: transform 0.3s;
+    }
+    .fighter-emoji.shake {
+      animation: shake 0.5s ease;
+    }
+    @keyframes shake {
+      0%,100% { transform: translateY(0) rotate(0deg); }
+      20%      { transform: translateY(-12px) rotate(-10deg); }
+      40%      { transform: translateY(4px) rotate(6deg); }
+      60%      { transform: translateY(-8px) rotate(-6deg); }
+      80%      { transform: translateY(2px) rotate(3deg); }
+    }
+    .vs-divider {
+      font-size: 1.4rem;
+      font-weight: 900;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    /* ---- Resultado ---- */
+    .result-banner {
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(1rem, 3vw, 1.25rem);
+      font-weight: 700;
+      padding: 10px 24px;
+      border-radius: 12px;
+      width: 100%;
+      text-align: center;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      transition: background 0.4s, color 0.4s, border-color 0.4s;
+    }
+    .result-banner.win {
+      background: rgba(0,230,118,0.1);
+      border-color: var(--win);
+      color: var(--win);
+    }
+    .result-banner.lose {
+      background: rgba(255,23,68,0.1);
+      border-color: var(--lose);
+      color: var(--lose);
+    }
+    .result-banner.tie {
+      background: rgba(255,171,64,0.1);
+      border-color: var(--tie);
+      color: var(--tie);
+    }
+    .result-banner.pop {
+      animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes popIn {
+      0%   { transform: scale(0.85); opacity: 0; }
+      100% { transform: scale(1);    opacity: 1; }
+    }
+
+    /* ---- Botões de escolha ---- */
+    .choices {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .choice-btn {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 20px;
+      padding: 18px 22px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      transition: transform 0.2s, border-color 0.2s, background 0.2s, box-shadow 0.2s;
+      color: var(--text);
+      user-select: none;
+      min-width: 110px;
+    }
+    .choice-btn:hover {
+      transform: translateY(-6px) scale(1.06);
+      border-color: rgba(255,255,255,0.3);
+      background: #222240;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+    }
+    .choice-btn:active {
+      transform: scale(0.96);
+    }
+    .choice-btn.selected {
+      border-color: #3b82f6;
+      background: rgba(59,130,246,0.15);
+    }
+    .choice-btn[data-choice="pedra"]:hover   { border-color: #f97316; box-shadow: 0 12px 32px rgba(249,115,22,0.3); }
+    .choice-btn[data-choice="papel"]:hover   { border-color: #3b82f6; box-shadow: 0 12px 32px rgba(59,130,246,0.3); }
+    .choice-btn[data-choice="tesoura"]:hover { border-color: #a855f7; box-shadow: 0 12px 32px rgba(168,85,247,0.3); }
+    .choice-icon { font-size: 2.6rem; line-height: 1; }
+    .choice-label { font-size: 0.85rem; font-weight: 600; letter-spacing: 0.5px; }
+
+    /* ---- Botão Reset ---- */
+    .reset-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--muted);
+      padding: 8px 20px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: color 0.2s, border-color 0.2s;
+      align-self: center;
+    }
+    .reset-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.25); }
+
+    /* ---- Histórico ---- */
+    .history-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px 20px;
+    }
+    .history-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 200px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .history-list::-webkit-scrollbar { width: 4px; }
+    .history-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 10px;
+      font-size: 0.85rem;
+      animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-12px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .history-result {
+      width: 60px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 0.75rem;
+      padding: 2px 6px;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+    .history-result.win  { background: rgba(0,230,118,0.15);  color: var(--win); }
+    .history-result.lose { background: rgba(255,23,68,0.15);  color: var(--lose); }
+    .history-result.tie  { background: rgba(255,171,64,0.15); color: var(--tie); }
+    .history-text { color: var(--muted); flex: 1; }
+    .history-round {
+      font-size: 0.7rem;
+      color: #555;
+      flex-shrink: 0;
+    }
+    .history-empty {
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 16px 0;
+    }
+
+    /* ---- Confete ---- */
+    .confetti-container {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 999;
+      overflow: hidden;
+    }
+    .confetti-piece {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      top: -16px;
+      animation: confettiFall linear forwards;
+    }
+    @keyframes confettiFall {
+      0%   { transform: translateY(0) rotateZ(0deg);   opacity: 1; }
+      100% { transform: translateY(105vh) rotateZ(720deg); opacity: 0; }
+    }
+
+    /* ---- Thinking ---- */
+    .thinking-dots {
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+    }
+    .thinking-dots span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+      animation: dot 1s ease-in-out infinite;
+    }
+    .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dot {
+      0%,80%,100% { transform: scale(0.6); opacity: 0.4; }
+      40%          { transform: scale(1.2); opacity: 1; }
+    }
+
+    /* ---- Responsivo ---- */
+    @media (max-width: 440px) {
+      .choice-btn { min-width: 90px; padding: 14px 16px; }
+      .choice-icon { font-size: 2rem; }
+      .fighter-emoji { font-size: 3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="particles"></div>
+<div class="confetti-container" id="confettiContainer"></div>
+
+<div class="wrapper">
+
+  <header>
+    <h1>Jankenpo ✊✋✌️</h1>
+    <p>Você contra o computador — melhor de qualquer número de rodadas</p>
+  </header>
+
+  <!-- Placar -->
+  <div class="scoreboard">
+    <div class="score-card" id="score-player">
+      <div class="score-label">Você</div>
+      <div class="score-value" id="player-score-val">0</div>
+      <div class="streak-badge" id="player-streak"></div>
+    </div>
+    <div class="score-vs">VS</div>
+    <div class="score-card" id="score-computer">
+      <div class="score-label">CPU</div>
+      <div class="score-value" id="computer-score-val">0</div>
+      <div class="streak-badge" id="computer-streak"></div>
+    </div>
+  </div>
+
+  <!-- Arena -->
+  <div class="arena">
+    <div class="arena-display">
+      <div class="fighter">
+        <div class="fighter-label">Você</div>
+        <div class="fighter-emoji" id="player-emoji">❓</div>
+      </div>
+      <div class="vs-divider">VS</div>
+      <div class="fighter">
+        <div class="fighter-label">CPU</div>
+        <div class="fighter-emoji" id="computer-emoji">❓</div>
+      </div>
+    </div>
+
+    <div class="result-banner" id="result-banner">
+      Escolha sua jogada abaixo!
+    </div>
+
+    <div class="choices">
+      <button class="choice-btn" data-choice="pedra"   onclick="play('pedra')">
+        <span class="choice-icon">✊</span>
+        <span class="choice-label">Pedra</span>
+      </button>
+      <button class="choice-btn" data-choice="papel"   onclick="play('papel')">
+        <span class="choice-icon">✋</span>
+        <span class="choice-label">Papel</span>
+      </button>
+      <button class="choice-btn" data-choice="tesoura" onclick="play('tesoura')">
+        <span class="choice-icon">✌️</span>
+        <span class="choice-label">Tesoura</span>
+      </button>
+    </div>
+
+    <button class="reset-btn" onclick="resetGame()">↺ Reiniciar</button>
+  </div>
+
+  <!-- Histórico -->
+  <div class="history-section">
+    <div class="history-title">Histórico de rodadas</div>
+    <div class="history-list" id="history-list">
+      <div class="history-empty">Nenhuma rodada ainda.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ---- Estado do jogo ----
+  const state = {
+    playerScore: 0,
+    computerScore: 0,
+    round: 0,
+    playerStreak: 0,
+    computerStreak: 0,
+    history: [],
+    locked: false,
+  };
+
+  const EMOJIS = { pedra: '✊', papel: '✋', tesoura: '✌️' };
+  const CHOICES = ['pedra', 'papel', 'tesoura'];
+
+  // Quem vence quem: winners[X] vence Y
+  const BEATS = { pedra: 'tesoura', papel: 'pedra', tesoura: 'papel' };
+
+  const TAUNTS_WIN = [
+    '🔥 Você é imparável!',
+    '💥 Boa demais!',
+    '🎉 Você ganhou essa!',
+    '🏆 Jogada perfeita!',
+    '😎 Leia minha mente... se conseguir!',
+  ];
+  const TAUNTS_LOSE = [
+    '🤖 Máquina nunca erra!',
+    '😈 Previsível demais!',
+    '💻 CPU dominante!',
+    '😤 Eu ganhei essa!',
+    '🧠 Processando sua derrota...',
+  ];
+  const TAUNTS_TIE = [
+    '🤝 Empate! Joguem de novo.',
+    '⚖️ Equilibrado demais!',
+    '😅 Nenhum vencedor dessa vez.',
+    '🌀 Mente idêntica!',
+  ];
+
+  function randomItem(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  // ---- Lógica principal ----
+  function play(playerChoice) {
+    if (state.locked) return;
+    state.locked = true;
+
+    // Destaca botão selecionado
+    document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('selected'));
+    document.querySelector(`[data-choice="${playerChoice}"]`).classList.add('selected');
+
+    // Mostra "pensando"
+    const resultBanner = document.getElementById('result-banner');
+    resultBanner.className = 'result-banner';
+    resultBanner.innerHTML = '<span class="thinking-dots"><span></span><span></span><span></span></span>';
+
+    // Mostra emoji do jogador imediatamente
+    setEmoji('player', playerChoice);
+
+    // Esconde emoji do CPU enquanto "pensa"
+    setEmoji('computer', '🤔');
+
+    setTimeout(() => {
+      const computerChoice = randomItem(CHOICES);
+      const outcome = getOutcome(playerChoice, computerChoice);
+
+      setEmoji('computer', computerChoice, true);
+      shakeEmoji('player');
+
+      state.round++;
+
+      // Atualiza placar e streaks
+      if (outcome === 'win') {
+        state.playerScore++;
+        state.playerStreak++;
+        state.computerStreak = 0;
+        triggerConfetti();
+      } else if (outcome === 'lose') {
+        state.computerScore++;
+        state.computerStreak++;
+        state.playerStreak = 0;
+      } else {
+        state.playerStreak = 0;
+        state.computerStreak = 0;
+      }
+
+      updateScoreboard(outcome);
+      showResult(outcome, playerChoice, computerChoice);
+      addHistory(outcome, playerChoice, computerChoice);
+      playSound(outcome);
+
+      state.history.unshift({ outcome, playerChoice, computerChoice, round: state.round });
+      state.locked = false;
+
+      // Remove seleção após um tempo
+      setTimeout(() => {
+        document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('selected'));
+      }, 800);
+    }, 900);
+  }
+
+  function getOutcome(player, computer) {
+    if (player === computer) return 'tie';
+    if (BEATS[player] === computer) return 'win';
+    return 'lose';
+  }
+
+  // ---- UI ----
+  function setEmoji(who, choice, animate) {
+    const el = document.getElementById(`${who}-emoji`);
+    const emoji = EMOJIS[choice] ?? choice;
+    el.textContent = emoji;
+    if (animate) {
+      el.classList.remove('shake');
+      void el.offsetWidth;
+      el.classList.add('shake');
+    }
+  }
+
+  function shakeEmoji(who) {
+    const el = document.getElementById(`${who}-emoji`);
+    el.classList.remove('shake');
+    void el.offsetWidth;
+    el.classList.add('shake');
+  }
+
+  function showResult(outcome, playerChoice, computerChoice) {
+    const banner = document.getElementById('result-banner');
+    const pc = playerChoice.charAt(0).toUpperCase() + playerChoice.slice(1);
+    const cc = computerChoice.charAt(0).toUpperCase() + computerChoice.slice(1);
+
+    let msg = '';
+    let cls = '';
+
+    if (outcome === 'win') {
+      msg = `${EMOJIS[playerChoice]} ${pc} vence ${EMOJIS[computerChoice]} ${cc} &mdash; ${randomItem(TAUNTS_WIN)}`;
+      cls = 'win';
+    } else if (outcome === 'lose') {
+      msg = `${EMOJIS[computerChoice]} ${cc} vence ${EMOJIS[playerChoice]} ${pc} &mdash; ${randomItem(TAUNTS_LOSE)}`;
+      cls = 'lose';
+    } else {
+      msg = `${EMOJIS[playerChoice]} ${pc} vs ${EMOJIS[computerChoice]} ${cc} &mdash; ${randomItem(TAUNTS_TIE)}`;
+      cls = 'tie';
+    }
+
+    banner.className = `result-banner ${cls} pop`;
+    banner.innerHTML = msg;
+  }
+
+  function updateScoreboard(outcome) {
+    const pVal = document.getElementById('player-score-val');
+    const cVal = document.getElementById('computer-score-val');
+    pVal.textContent = state.playerScore;
+    cVal.textContent = state.computerScore;
+
+    if (outcome === 'win') bumpCard('score-player');
+    if (outcome === 'lose') bumpCard('score-computer');
+
+    // Streaks
+    const pStreak = document.getElementById('player-streak');
+    const cStreak = document.getElementById('computer-streak');
+
+    if (state.playerStreak >= 2) {
+      pStreak.textContent = `🔥 ${state.playerStreak} seguidas`;
+      pStreak.classList.add('visible');
+    } else {
+      pStreak.classList.remove('visible');
+    }
+
+    if (state.computerStreak >= 2) {
+      cStreak.textContent = `🔥 ${state.computerStreak} seguidas`;
+      cStreak.classList.add('visible');
+    } else {
+      cStreak.classList.remove('visible');
+    }
+  }
+
+  function bumpCard(id) {
+    const el = document.getElementById(id);
+    el.classList.remove('bump');
+    void el.offsetWidth;
+    el.classList.add('bump');
+  }
+
+  function addHistory(outcome, playerChoice, computerChoice) {
+    const list = document.getElementById('history-list');
+
+    // Remove placeholder
+    const empty = list.querySelector('.history-empty');
+    if (empty) empty.remove();
+
+    const item = document.createElement('div');
+    item.className = 'history-item';
+
+    const labels = { win: 'Ganhou', lose: 'Perdeu', tie: 'Empate' };
+    item.innerHTML = `
+      <span class="history-result ${outcome}">${labels[outcome]}</span>
+      <span class="history-text">${EMOJIS[playerChoice]} ${capitalize(playerChoice)} vs ${EMOJIS[computerChoice]} ${capitalize(computerChoice)}</span>
+      <span class="history-round">R${state.round}</span>
+    `;
+
+    list.prepend(item);
+
+    // Limita histórico visual a 20 itens
+    const items = list.querySelectorAll('.history-item');
+    if (items.length > 20) items[items.length - 1].remove();
+  }
+
+  function capitalize(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
+  function resetGame() {
+    state.playerScore = 0;
+    state.computerScore = 0;
+    state.round = 0;
+    state.playerStreak = 0;
+    state.computerStreak = 0;
+    state.history = [];
+    state.locked = false;
+
+    document.getElementById('player-score-val').textContent = '0';
+    document.getElementById('computer-score-val').textContent = '0';
+    document.getElementById('player-emoji').textContent = '❓';
+    document.getElementById('computer-emoji').textContent = '❓';
+
+    const banner = document.getElementById('result-banner');
+    banner.className = 'result-banner';
+    banner.textContent = 'Escolha sua jogada abaixo!';
+
+    document.getElementById('history-list').innerHTML = '<div class="history-empty">Nenhuma rodada ainda.</div>';
+    document.getElementById('player-streak').classList.remove('visible');
+    document.getElementById('computer-streak').classList.remove('visible');
+    document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('selected'));
+  }
+
+  // ---- Confete ----
+  function triggerConfetti() {
+    const container = document.getElementById('confettiContainer');
+    const colors = ['#e94560','#3b82f6','#a855f7','#00e676','#ffab40','#fff'];
+    const count = 60;
+
+    for (let i = 0; i < count; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      const size = Math.random() * 10 + 6;
+      piece.style.cssText = `
+        left: ${Math.random() * 100}%;
+        width: ${size}px;
+        height: ${size * (Math.random() > 0.5 ? 1 : 2.5)}px;
+        background: ${colors[Math.floor(Math.random() * colors.length)]};
+        border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+        animation-duration: ${Math.random() * 1.5 + 1.2}s;
+        animation-delay: ${Math.random() * 0.5}s;
+      `;
+      container.appendChild(piece);
+      piece.addEventListener('animationend', () => piece.remove());
+    }
+  }
+
+  // ---- Som via Web Audio ----
+  let audioCtx;
+  function getAudioCtx() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx;
+  }
+
+  function playSound(outcome) {
+    try {
+      const ctx = getAudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      if (outcome === 'win') {
+        // Acorde alegre
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523, ctx.currentTime);
+        osc.frequency.setValueAtTime(659, ctx.currentTime + 0.12);
+        osc.frequency.setValueAtTime(784, ctx.currentTime + 0.24);
+        gain.gain.setValueAtTime(0.18, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.6);
+      } else if (outcome === 'lose') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(300, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.4);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.5);
+      } else {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(440, ctx.currentTime);
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.3);
+      }
+    } catch (e) { /* silencia erros de áudio */ }
+  }
+
+  // ---- Partículas de fundo ----
+  (function spawnParticles() {
+    const container = document.getElementById('particles');
+    const colors = ['#e94560','#3b82f6','#a855f7','#00e676'];
+    for (let i = 0; i < 18; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const size = Math.random() * 60 + 20;
+      p.style.cssText = `
+        left: ${Math.random() * 100}%;
+        width: ${size}px;
+        height: ${size}px;
+        background: ${colors[Math.floor(Math.random() * colors.length)]};
+        animation-duration: ${Math.random() * 14 + 10}s;
+        animation-delay: ${Math.random() * 12}s;
+      `;
+      container.appendChild(p);
+    }
+  })();
+</script>
+</body>
+</html>
